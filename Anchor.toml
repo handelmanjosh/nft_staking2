@@ -11,7 +11,7 @@ nft_staking2 = "Cf46V8YdPDPvN3XUNzDEZDMsWvZivFm9A5fkrXojHe2K"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "devnet"
+cluster = "Localnet"
 wallet = "/home/xeony/.config/solana/id.json"
 
 [scripts]
