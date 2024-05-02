@@ -13,6 +13,20 @@ pub mod nft_staking2 {
     pub fn create_associated_token_account(_ctx: Context<CreateAssociatedTokenAccount>) -> Result<()> {
         Ok(())
     }
+    pub fn fund(ctx: Context<Fund>, amount: u64) -> Result<()> {
+        transfer(
+            CpiContext::new(
+                ctx.accounts.token_program.to_account_info(),
+                Transfer {
+                    from: ctx.accounts.user_token_account.to_account_info(),
+                    to: ctx.accounts.program_token_account.to_account_info(),
+                    authority: ctx.accounts.user.to_account_info()
+                }
+            ),
+            amount
+        )?;
+        Ok(())
+    }
     pub fn stake(ctx: Context<Stake>, collection: u8, size: u64) -> Result<()> {
         if ctx.accounts.stake_account.owner == Pubkey::default() {
             ctx.accounts.stake_account.owner = ctx.accounts.user.key();
@@ -82,15 +96,15 @@ pub mod nft_staking2 {
         let index = stake.mints.iter().position(|&x| x == ctx.accounts.nft_account.mint).unwrap();
         let time_diff = Clock::get()?.unix_timestamp - stake.staked_times[index];
         let tokens = time_diff as u64; //how do we calculate tokens earned?
-        mint_to(
+        transfer(
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.to_account_info(),
-                MintTo {
+                Transfer {
+                    from: ctx.accounts.program_token_account.to_account_info(),
                     to: ctx.accounts.user_token_account.to_account_info(),
-                    mint: ctx.accounts.token_mint.to_account_info(),
-                    authority: ctx.accounts.token_mint.to_account_info(),
+                    authority: ctx.accounts.program_token_account.to_account_info()
                 },
-                &[&[b"mint", &[ctx.bumps.token_mint]]]
+                &[&[b"mint", &[ctx.bumps.program_token_account]]]
             ),
             tokens
         )?;
@@ -108,15 +122,15 @@ pub mod nft_staking2 {
             let time_diff = curr_time - ctx.accounts.stake_account.staked_times[i];
             let tokens = time_diff as u64;
             ctx.accounts.stake_account.staked_times[i] = curr_time;
-            mint_to(
+            transfer(
                 CpiContext::new_with_signer(
                     ctx.accounts.token_program.to_account_info(),
-                    MintTo {
+                    Transfer {
+                        from: ctx.accounts.program_token_account.to_account_info(),
                         to: ctx.accounts.user_token_account.to_account_info(),
-                        mint: ctx.accounts.token_mint.to_account_info(),
-                        authority: ctx.accounts.token_mint.to_account_info(),
+                        authority: ctx.accounts.program_token_account.to_account_info()
                     },
-                    &[&[b"mint", &[ctx.bumps.token_mint]]]
+                    &[&[b"mint", &[ctx.bumps.program_token_account]]]
                 ),
                 tokens
             )?;
@@ -151,15 +165,30 @@ pub struct CreateAssociatedTokenAccount<'info> {
     pub rent: Sysvar<'info, Rent>
 }
 #[derive(Accounts)]
+pub struct Fund<'info> {
+    #[account(mut)]
+    pub user: Signer<'info>,
+    #[account(mut)]
+    pub user_token_account: Account<'info, TokenAccount>,
+    #[account(
+        mut,
+        seeds = [b"mint"],
+        bump,
+    )]
+    pub program_token_account: Account<'info, TokenAccount>,
+    pub token_program: Program<'info, Token>
+}
+#[derive(Accounts)]
 pub struct Initialize<'info> {
     #[account(
         init,
         seeds = [b"mint"],
         bump,
         payer = user,
-        mint::decimals = 6,
-        mint::authority = mint,
+        token::mint = mint,
+        token::authority = program_authority
     )]
+    pub program_token_account: Account<'info, TokenAccount>,
     pub mint: Account<'info, Mint>,
     #[account(
         init,
@@ -266,7 +295,7 @@ pub struct Unstake<'info> {
         seeds = [b"mint"],
         bump,
     )]
-    pub token_mint: Account<'info, Mint>,
+    pub program_token_account: Account<'info, TokenAccount>,
     #[account(
         seeds = [b"auth"],
         bump,
@@ -293,7 +322,7 @@ pub struct Claim<'info> {
         seeds = [b"mint"],
         bump
     )]
-    pub token_mint: Account<'info, Mint>,
+    pub program_token_account: Account<'info, TokenAccount>,
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
 }
