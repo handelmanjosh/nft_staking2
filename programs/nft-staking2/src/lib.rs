@@ -102,9 +102,9 @@ pub mod nft_staking2 {
                 Transfer {
                     from: ctx.accounts.program_token_account.to_account_info(),
                     to: ctx.accounts.user_token_account.to_account_info(),
-                    authority: ctx.accounts.program_authority.to_account_info()
+                    authority: ctx.accounts.program_token_account.to_account_info()
                 },
-                &[&[b"auth", &[ctx.bumps.program_authority]]]
+                &[&[b"mint", &[ctx.bumps.program_token_account]]]
             ),
             tokens
         )?;
@@ -128,9 +128,9 @@ pub mod nft_staking2 {
                     Transfer {
                         from: ctx.accounts.program_token_account.to_account_info(),
                         to: ctx.accounts.user_token_account.to_account_info(),
-                        authority: ctx.accounts.program_authority.to_account_info()
+                        authority: ctx.accounts.program_token_account.to_account_info()
                     },
-                    &[&[b"auth", &[ctx.bumps.program_authority]]]
+                    &[&[b"mint", &[ctx.bumps.program_token_account]]]
                 ),
                 tokens
             )?;
@@ -186,7 +186,7 @@ pub struct Initialize<'info> {
         bump,
         payer = user,
         token::mint = mint,
-        token::authority = program_authority
+        token::authority = program_token_account
     )]
     pub program_token_account: Account<'info, TokenAccount>,
     pub mint: Account<'info, Mint>,
@@ -325,10 +325,4 @@ pub struct Claim<'info> {
     pub program_token_account: Account<'info, TokenAccount>,
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
-    #[account(
-        seeds = [b"auth"],
-        bump
-    )]
-    /// CHECK:
-    pub program_authority: UncheckedAccount<'info>,
 }

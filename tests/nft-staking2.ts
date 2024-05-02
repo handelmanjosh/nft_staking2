@@ -244,6 +244,10 @@ describe("nft-staking2", () => {
       [Buffer.from("stake"), wallet.publicKey.toBuffer()],
       program.programId
     );
+    const [programAuthority] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("auth")],
+      program.programId,
+    );
     let accountData = await program.account.stakeInfo.fetch(stakeAccount);
     let start = accountData.mints.length;
     for (let i = 0; i < 3; i++) {
@@ -253,12 +257,10 @@ describe("nft-staking2", () => {
       mint, 
       wallet.publicKey
     );
-    console.log(programAuthority.toString());
     await program.methods.claim().accounts({
       stakeAccount,
       user: wallet.publicKey,
       userTokenAccount,
-      programAuthority,
       programTokenAccount,
     }).rpc();
     accountData = await program.account.stakeInfo.fetch(stakeAccount);
