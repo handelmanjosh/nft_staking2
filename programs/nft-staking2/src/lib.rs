@@ -102,9 +102,9 @@ pub mod nft_staking2 {
                 Transfer {
                     from: ctx.accounts.program_token_account.to_account_info(),
                     to: ctx.accounts.user_token_account.to_account_info(),
-                    authority: ctx.accounts.program_token_account.to_account_info()
+                    authority: ctx.accounts.program_authority.to_account_info()
                 },
-                &[&[b"mint", &[ctx.bumps.program_token_account]]]
+                &[&[b"auth", &[ctx.bumps.program_authority]]]
             ),
             tokens
         )?;
@@ -128,9 +128,9 @@ pub mod nft_staking2 {
                     Transfer {
                         from: ctx.accounts.program_token_account.to_account_info(),
                         to: ctx.accounts.user_token_account.to_account_info(),
-                        authority: ctx.accounts.program_token_account.to_account_info()
+                        authority: ctx.accounts.program_authority.to_account_info()
                     },
-                    &[&[b"mint", &[ctx.bumps.program_token_account]]]
+                    &[&[b"auth", &[ctx.bumps.program_authority]]]
                 ),
                 tokens
             )?;
@@ -300,7 +300,7 @@ pub struct Unstake<'info> {
         seeds = [b"auth"],
         bump,
     )]
-    /// CHECK: fuck off
+    /// CHECK:
     pub program_authority: AccountInfo<'info>,
 }
 
@@ -325,4 +325,10 @@ pub struct Claim<'info> {
     pub program_token_account: Account<'info, TokenAccount>,
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
+    #[account(
+        seeds = [b"auth"],
+        bump
+    )]
+    /// CHECK:
+    pub program_authority: UncheckedAccount<'info>,
 }

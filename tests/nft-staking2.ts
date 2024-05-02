@@ -3,13 +3,19 @@ import { Program } from "@coral-xyz/anchor";
 import { NftStaking2 } from "../target/types/nft_staking2";
 import { TOKEN_PROGRAM_ID, createMint, getOrCreateAssociatedTokenAccount, mintTo, getAccount, getAssociatedTokenAddress, getAssociatedTokenAddressSync, createAssociatedTokenAccount } from "@solana/spl-token";
 import { assert, expect } from "chai";
-import { PublicKey, Keypair } from "@solana/web3.js";
+import { PublicKey, Keypair, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import fs from 'fs';
 function functionalIncludes<T>(l: T[], f: (t: T) => boolean): boolean {
   for (const item of l){
     if (f(item)) return true;
   }
   return false;
+}
+function getIndex<T>(l: T[], f: (t: T) => boolean): number {
+  for (let i = 0; i < l.length; i++) {
+    if (f(l[i])) return i;
+  }
+  return -1;
 }
 async function timeout(ms: number): Promise<void> {
   return new Promise((resolve) => {
@@ -89,6 +95,8 @@ describe("nft-staking2", () => {
   })
   it("can create and view account info", async () => {
     let user = Keypair.generate();
+    const tx = await provider.connection.requestAirdrop(user.publicKey, 10 * LAMPORTS_PER_SOL);
+    await timeout(1000);
     let userTokenAccount = getAssociatedTokenAddressSync(
       mint,
       user.publicKey
@@ -182,74 +190,82 @@ describe("nft-staking2", () => {
       //console.error(e);
     }
   });
-  // it("stakes and unstakes", async () => {
-  //   let [stakeAccount] = anchor.web3.PublicKey.findProgramAddressSync(
-  //     [Buffer.from("stake"), wallet.publicKey.toBuffer()],
-  //     program.programId
-  //   );
-  //   const accountData = await program.account.stakeInfo.fetch(stakeAccount);
-  //   const { nftMint } = await stake(accountData.mints.length);
-  //   await stake(accountData.mints.length + 1);
-  //   const accountData2 = await program.account.stakeInfo.fetch(stakeAccount);
-  //   const accountDataAfter = await program.account.stakeInfo.fetch(stakeAccount);
-  //   assert(accountDataAfter.mints.length > accountData.mints.length);
-  //   const [stakeTokenAccount] = anchor.web3.PublicKey.findProgramAddressSync(
-  //     [Buffer.from("stake_account"), wallet.publicKey.toBuffer(), nftMint.toBuffer()],
-  //     program.programId
-  //   );
-  //   const userTokenAccount = getAssociatedTokenAddressSync(
-  //     mint, 
-  //     wallet.publicKey
-  //   );
-  //   const nftAccount = getAssociatedTokenAddressSync(nftMint, wallet.publicKey);
-  //   await program.methods.unstake().accounts({
-  //     stakeAccount,
-  //     stakeTokenAccount,
-  //     nftAccount,
-  //     programAuthority,
-  //     programTokenAccount,
-  //     user: wallet.publicKey,
-  //     userTokenAccount,
-  //   }).signers([wallet.payer]).rpc();
-  //   const token = await getAccount(provider.connection, userTokenAccount);
-  //   await timeout(500);
-  //   assert(token.amount > 0, "user did not get any token");
-  //   const tokenAcc = await getAccount(provider.connection, stakeTokenAccount);
-  //   assert(tokenAcc.amount === BigInt(0), "Program still has token");
-  //   const account = await program.account.stakeInfo.fetch(stakeAccount);
-  //   fs.writeFileSync("file.json", JSON.stringify({account, accountData, accountData2, nftMint, nftAccount}));
-  //   assert(account.mints.length === accountData.mints.length + 1, "did not stake 2 then unstake 1 nft");
-  //   assert(account.mints.length === accountData2.mints.length - 1, "Removed a mint");
-  //   assert(!functionalIncludes(account.mints, (mint) => {
-  //     return mint.equals(nftMint);
-  //   }), "Account still includes nft mint");
-  // });
-  // it("claims multiple", async () => {
-  //   let [stakeAccount] = anchor.web3.PublicKey.findProgramAddressSync(
-  //     [Buffer.from("stake"), wallet.publicKey.toBuffer()],
-  //     program.programId
-  //   );
-  //   let accountData = await program.account.stakeInfo.fetch(stakeAccount);
-  //   let start = accountData.mints.length;
-  //   for (let i = 0; i < 3; i++) {
-  //     await stake(start + i);
-  //   }
-  //   const userTokenAccount = getAssociatedTokenAddressSync(
-  //     mint, 
-  //     wallet.publicKey
-  //   );
-  //   await program.methods.claim().accounts({
-  //     stakeAccount,
-  //     user: wallet.publicKey,
-  //     userTokenAccount,
-  //     programTokenAccount,
-  //     tokenProgram: TOKEN_PROGRAM_ID,
-  //   }).rpc();
-  //   accountData = await program.account.stakeInfo.fetch(stakeAccount);
-  //   const bigints = accountData.stakedTimes.map((d) => BigInt(d.toString()));
-  //   const bools = bigints.reduce((prev, curr) => {
-  //     return [curr, prev[1] && prev[0] == curr]
-  //   }, [bigints[0], true])
-  //   assert(bools, "everything not equal");
-  // })
+  it("stakes and unstakes", async () => {
+    let [stakeAccount] = anchor.web3.PublicKey.findProgramAddressSync(
+       [Buffer.from("stake"), wallet.publicKey.toBuffer()],
+       program.programId
+     );
+     const accountData = await program.account.stakeInfo.fetch(stakeAccount);
+     const { nftMint } = await stake(accountData.mints.length);
+     await stake(accountData.mints.length + 1);
+     const accountData2 = await program.account.stakeInfo.fetch(stakeAccount);
+     const accountDataAfter = await program.account.stakeInfo.fetch(stakeAccount);
+     assert(accountDataAfter.mints.length > accountData.mints.length);
+    const [stakeTokenAccount] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("stake_account"), wallet.publicKey.toBuffer(), nftMint.toBuffer()],
+      program.programId
+    );
+    const userTokenAccount = getAssociatedTokenAddressSync(
+      mint, 
+      wallet.publicKey
+    );
+    const nftAccount = getAssociatedTokenAddressSync(nftMint, wallet.publicKey);
+    // const programBalance = await getAccount(provider.connection, programTokenAccount);
+    // console.log(programBalance.amount);
+    const accounts = (await program.account.stakeInfo.all())[0];
+    const myIndex = getIndex(accounts.account.mints, (m) => m.equals(nftMint));
+    const now = Date.now();
+    const diff = BigInt(now) - BigInt(accounts.account.stakedTimes[myIndex].toString()) * BigInt(1000)
+    // console.log({myIndex, time: accounts.account.stakedTimes[myIndex].toString(), diff})
+    await program.methods.unstake().accounts({
+      stakeAccount,
+      stakeTokenAccount,
+      nftAccount,
+      programAuthority,
+      programTokenAccount,
+      user: wallet.publicKey,
+      userTokenAccount,
+    }).signers([wallet.payer]).rpc();
+    await timeout(500);
+    const token = await getAccount(provider.connection, userTokenAccount);
+    assert(token.amount > 0, "user did not get any token");
+    const tokenAcc = await getAccount(provider.connection, stakeTokenAccount);
+    assert(tokenAcc.amount === BigInt(0), "Program still has nft token");
+    const account = await program.account.stakeInfo.fetch(stakeAccount);
+    fs.writeFileSync("file.json", JSON.stringify({account, accountData, accountData2, nftMint, nftAccount}));
+    assert(account.mints.length === accountData.mints.length + 1, "did not stake 2 then unstake 1 nft");
+    assert(account.mints.length === accountData2.mints.length - 1, "Removed a mint");
+    assert(!functionalIncludes(account.mints, (mint) => {
+      return mint.equals(nftMint);
+    }), "Account still includes nft mint");
+  });
+  it("claims multiple", async () => {
+    let [stakeAccount] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("stake"), wallet.publicKey.toBuffer()],
+      program.programId
+    );
+    let accountData = await program.account.stakeInfo.fetch(stakeAccount);
+    let start = accountData.mints.length;
+    for (let i = 0; i < 3; i++) {
+      await stake(start + i);
+    }
+    const userTokenAccount = getAssociatedTokenAddressSync(
+      mint, 
+      wallet.publicKey
+    );
+    console.log(programAuthority.toString());
+    await program.methods.claim().accounts({
+      stakeAccount,
+      user: wallet.publicKey,
+      userTokenAccount,
+      programAuthority,
+      programTokenAccount,
+    }).rpc();
+    accountData = await program.account.stakeInfo.fetch(stakeAccount);
+    const bigints = accountData.stakedTimes.map((d) => BigInt(d.toString()));
+    const bools = bigints.reduce((prev, curr) => {
+      return [curr, prev[1] && prev[0] == curr]
+    }, [bigints[0], true])
+    assert(bools, "everything not equal");
+  })
 });
