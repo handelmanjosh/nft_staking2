@@ -3,7 +3,6 @@ use anchor_spl::{associated_token::AssociatedToken, token::{transfer, Mint, Toke
 use mpl_token_metadata::accounts::Metadata;
 declare_id!("Cf46V8YdPDPvN3XUNzDEZDMsWvZivFm9A5fkrXojHe2K");
 
-const DECIMALS: u64 = 9;
 #[program]
 pub mod nft_staking2 {
     use super::*;
@@ -102,7 +101,7 @@ pub mod nft_staking2 {
         )?;
         let index = stake.mints.iter().position(|&x| x == ctx.accounts.nft_account.mint).unwrap();
         let time_diff = Clock::get()?.unix_timestamp - stake.staked_times[index];
-        let tokens = time_diff as u64; //how do we calculate tokens earned?
+        let tokens = (time_diff as u64 * 5 * 10_u64.pow(9)) / 86400; //9 decimals in $UNISIN
         transfer(
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.to_account_info(),
@@ -127,7 +126,7 @@ pub mod nft_staking2 {
         let curr_time = Clock::get()?.unix_timestamp;
         for i in 0..ctx.accounts.stake_account.staked_times.len() {
             let time_diff = curr_time - ctx.accounts.stake_account.staked_times[i];
-            let tokens = time_diff as u64;
+            let tokens = (time_diff as u64 * 5 * 10_u64.pow(9)) / 86400; 
             ctx.accounts.stake_account.staked_times[i] = curr_time;
             transfer(
                 CpiContext::new_with_signer(
