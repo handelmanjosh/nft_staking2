@@ -4,6 +4,7 @@ import { NftStaking2 } from "../target/types/nft_staking2";
 import { TOKEN_PROGRAM_ID, createMint, getOrCreateAssociatedTokenAccount, mintTo, getAccount, getAssociatedTokenAddress, getAssociatedTokenAddressSync, createAssociatedTokenAccount } from "@solana/spl-token";
 import { assert, expect } from "chai";
 import { PublicKey, Keypair, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { Metaplex, keypairIdentity } from "@metaplex-foundation/js";
 import fs from 'fs';
 function functionalIncludes<T>(l: T[], f: (t: T) => boolean): boolean {
   for (const item of l){
@@ -30,7 +31,7 @@ describe("nft-staking2", () => {
   anchor.setProvider(provider);
   const program = anchor.workspace.NftStaking2 as Program<NftStaking2>;
   const wallet = provider.wallet as anchor.Wallet;
-
+  const metaplex = Metaplex.make(provider.connection).use(keypairIdentity(wallet.payer));
   const [programTokenAccount] = anchor.web3.PublicKey.findProgramAddressSync(
     [Buffer.from("mint")],
     program.programId,
@@ -46,7 +47,7 @@ describe("nft-staking2", () => {
       wallet.payer,
       wallet.publicKey,
       null,
-      6
+      9
     );
     mint = m;
     const userTokenAccount = await createAssociatedTokenAccount(
@@ -54,14 +55,14 @@ describe("nft-staking2", () => {
       wallet.payer,
       m,
       wallet.publicKey,
-    )
+    );
     await mintTo(
       provider.connection,
       wallet.payer,
       m,
       userTokenAccount,
       wallet.payer,
-      100000 * 10**6
+      100000 * 10**9
     )
   }
   const initialize = async () => {
@@ -69,7 +70,7 @@ describe("nft-staking2", () => {
       programTokenAccount,
       mint,
       programAuthority,
-    }).rpc();
+    }).signers([wallet.payer]).rpc();
   }
   it("Is initialized!", async () => {
     await setupToken();
@@ -78,16 +79,16 @@ describe("nft-staking2", () => {
     assert(progAccountData.amount === BigInt(0), "Program account has token");
     const userTokenAccount = getAssociatedTokenAddressSync(mint, wallet.publicKey);
     const userTokenAccountData = await getAccount(provider.connection, userTokenAccount);
-    assert(userTokenAccountData.amount === BigInt(100000 * 10**6), "user did not get token");
+    assert(userTokenAccountData.amount === BigInt(100000 * 10**9), "user did not get token");
   });
   it("funds program account successfully", async () => {
     const userTokenAccount = getAssociatedTokenAddressSync(mint, wallet.publicKey);
-    let amount = 50000 * 10**6;
+    let amount = 50000 * 10**9;
     await program.methods.fund(new anchor.BN(amount)).accounts({
       userTokenAccount,
       user: wallet.publicKey,
       programTokenAccount,
-    }).rpc();
+    }).signers([wallet.payer]).rpc();
     let programTokenAccountData = await getAccount(provider.connection, programTokenAccount);
     assert(programTokenAccountData.amount === BigInt(amount), "program token account did not get token");
     let userTokenAccountData = await getAccount(provider.connection, userTokenAccount);
@@ -112,73 +113,96 @@ describe("nft-staking2", () => {
     assert(accountInfo, "account not defined");
   })
   const mintNFT = async () => {
-    const nftMint = await createMint(
-      provider.connection,
-      wallet.payer,
-      wallet.publicKey,
-      null,
-      0
-    );
+    const symbols = ["CLB", "UG", "GOTM", "GREATGOATS", "CNDY"];
+    const symbol = symbols[Math.floor(Math.random() * symbols.length)];
+    const { nft: nftCollection } = await metaplex.nfts().create({
+      name: "NFT Collection",
+      symbol,
+      sellerFeeBasisPoints: 500,
+      uri: "",
+      isCollection: true,
+    });
+    const { nft } = await metaplex.nfts().create({
+      name: "NFT #1",
+      symbol, 
+      collection: nftCollection.address,
+      uri: "",
+      sellerFeeBasisPoints: 500,
+    });
     const nftAccount = await getOrCreateAssociatedTokenAccount(
       provider.connection,
       wallet.payer,
-      nftMint,
-      wallet.publicKey,
+      nft.address,
+      wallet.publicKey
     );
-    await mintTo(
-      provider.connection,
-      wallet.payer,
-      nftMint,
-      nftAccount.address,
-      wallet.payer,
-      1
-    );
+    
+    // const nftMint = await createMint(
+    //   provider.connection,
+    //   wallet.payer,
+    //   wallet.publicKey,
+    //   null,
+    //   0
+    // );
+    // const nftAccount = await getOrCreateAssociatedTokenAccount(
+    //   provider.connection,
+    //   wallet.payer,
+    //   nftMint,
+    //   wallet.publicKey,
+    // );
+    // await mintTo(
+    //   provider.connection,
+    //   wallet.payer,
+    //   nftMint,
+    //   nftAccount.address,
+    //   wallet.payer,
+    //   1
+    // );
     const [stakeAccount] = anchor.web3.PublicKey.findProgramAddressSync(
       [Buffer.from("stake"), wallet.publicKey.toBuffer()],
       program.programId,
     );
     const [stakeTokenAccount] = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("stake_account"), wallet.publicKey.toBuffer(), nftMint.toBuffer()],
+      [Buffer.from("stake_account"), wallet.publicKey.toBuffer(), nft.address.toBuffer()],
       program.programId,
     )
-    return { nftMint, nftAccount, stakeAccount, stakeTokenAccount };
+    return { nftMint: nft.address, nftAccount, stakeAccount, stakeTokenAccount };
   }
   const stake = async (size: number) => {
     const { nftMint, nftAccount, stakeAccount, stakeTokenAccount } = await mintNFT();
-    await program.methods.stake(0, new anchor.BN(size)).accounts({
+    const metadata = await metaplex.nfts().findByMint({mintAddress: nftMint});
+   const tx = await program.methods.stake(0, new anchor.BN(size)).accounts({
       stakeAccount,
       stakeTokenAccount,
       user: wallet.publicKey,
       nftAccount: nftAccount.address,
       programAuthority,
+      nftMetadata: metadata.metadataAddress,
       mint: nftMint
     }).signers([wallet.payer]).rpc();
+    console.log(tx);
     return { nftMint, nftAccount, stakeAccount, stakeTokenAccount };
   }
   it("can stake single nft", async () => {
     const { nftMint, nftAccount, stakeAccount, stakeTokenAccount } = await mintNFT();
-    await program.methods.stake(0, new anchor.BN(0)).accounts({
+    const metadata = await metaplex.nfts().findByMint({mintAddress: nftMint});
+    const tx = await program.methods.stake(0, new anchor.BN(0)).accounts({
       stakeAccount,
       stakeTokenAccount,
       user: wallet.publicKey,
       nftAccount: nftAccount.address,
       programAuthority,
+      nftMetadata: metadata.metadataAddress,
       mint: nftMint
     }).signers([wallet.payer]).rpc();
+    console.log(tx);
     // const account = await program.account.stakeInfo.fetch(stakeAccount);
     // console.log(account);
   });
-  // it("should fail to stake if incorrect size", async () => {
-  //     await fail(async () => {
-  //       await stake(10)
-  //     }, "Invalid size")
-  // })
   it("can stake multiple nfts", async () =>{
     const [stakeAccount] = anchor.web3.PublicKey.findProgramAddressSync(
       [Buffer.from("stake"), wallet.publicKey.toBuffer()],
       program.programId,
     );
-    const accountInfo = await provider.connection.getAccountInfo(stakeAccount);
     await stake(1);
     await stake(2);
   });

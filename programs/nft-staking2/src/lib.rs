@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::{associated_token::AssociatedToken, token::{transfer, Mint, Token, TokenAccount, Transfer}};
 use mpl_token_metadata::accounts::Metadata;
-declare_id!("Cf46V8YdPDPvN3XUNzDEZDMsWvZivFm9A5fkrXojHe2K");
+declare_id!("DmafajAhpjDHyFVU2pFKSv3ZduJNCp5ba2nYjJ42pdDe");
 
 #[program]
 pub mod nft_staking2 {
@@ -266,6 +266,7 @@ pub struct Stake<'info> {
         bump,
         seeds::program = mpl_token_metadata::ID,
     )]
+    /// CHECK:
     pub nft_metadata: UncheckedAccount<'info>,
     #[account(mut)]
     pub user: Signer<'info>,

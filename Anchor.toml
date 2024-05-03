@@ -5,13 +5,13 @@ seeds = false
 skip-lint = false
 
 [programs.localnet]
-nft_staking2 = "Cf46V8YdPDPvN3XUNzDEZDMsWvZivFm9A5fkrXojHe2K"
+nft_staking2 = "DmafajAhpjDHyFVU2pFKSv3ZduJNCp5ba2nYjJ42pdDe"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Localnet"
+cluster = "devnet"
 wallet = "/home/xeony/.config/solana/id.json"
 
 [scripts]

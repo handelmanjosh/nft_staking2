@@ -5,6 +5,7 @@
     },
     "dependencies": {
         "@coral-xyz/anchor": "^0.29.0",
+        "@metaplex-foundation/js": "^0.20.1",
         "@solana/spl-token": "^0.4.6"
     },
     "devDependencies": {
