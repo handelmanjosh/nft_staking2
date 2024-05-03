@@ -1252,11 +1252,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "mpl-token-metadata"
+version = "4.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "caf0f61b553e424a6234af1268456972ee66c2222e1da89079242251fa7479e5"
+dependencies = [
+ "borsh 0.10.3",
+ "num-derive 0.3.3",
+ "num-traits",
+ "solana-program",
+ "thiserror",
+]
+
+[[package]]
 name = "nft-staking2"
 version = "0.1.0"
 dependencies = [
  "anchor-lang",
  "anchor-spl",
+ "mpl-token-metadata",
 ]
 
 [[package]]
@@ -1268,6 +1282,17 @@ dependencies = [
  "autocfg",
  "num-integer",
  "num-traits",
+]
+
+[[package]]
+name = "num-derive"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "876a53fff98e03a936a674b29568b0e605f06b29372c2489ff4de23f1949743d"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
 ]
 
 [[package]]
@@ -1877,7 +1902,7 @@ dependencies = [
  "log",
  "memoffset",
  "num-bigint",
- "num-derive",
+ "num-derive 0.4.2",
  "num-traits",
  "parking_lot",
  "rand 0.8.5",
@@ -1925,7 +1950,7 @@ dependencies = [
  "libsecp256k1",
  "log",
  "memmap2",
- "num-derive",
+ "num-derive 0.4.2",
  "num-traits",
  "num_enum",
  "pbkdf2 0.11.0",
@@ -1988,7 +2013,7 @@ dependencies = [
  "itertools",
  "lazy_static",
  "merlin",
- "num-derive",
+ "num-derive 0.4.2",
  "num-traits",
  "rand 0.7.3",
  "serde",
@@ -2009,7 +2034,7 @@ checksum = "4414117bead33f2a5cf059cefac0685592bdd36f31f3caac49b89bff7f6bbf32"
 dependencies = [
  "assert_matches",
  "borsh 0.10.3",
- "num-derive",
+ "num-derive 0.4.2",
  "num-traits",
  "solana-program",
  "spl-token",
@@ -2080,7 +2105,7 @@ version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7e0657b6490196971d9e729520ba934911ff41fbb2cb9004463dbe23cf8b4b4f"
 dependencies = [
- "num-derive",
+ "num-derive 0.4.2",
  "num-traits",
  "solana-program",
  "spl-program-error-derive",
@@ -2135,7 +2160,7 @@ checksum = "95ae123223633a389f95d1da9d49c2d0a50d499e7060b9624626a69e536ad2a4"
 dependencies = [
  "arrayref",
  "bytemuck",
- "num-derive",
+ "num-derive 0.4.2",
  "num-traits",
  "num_enum",
  "solana-program",
@@ -2150,7 +2175,7 @@ checksum = "e4abf34a65ba420584a0c35f3903f8d727d1f13ababbdc3f714c6b065a686e86"
 dependencies = [
  "arrayref",
  "bytemuck",
- "num-derive",
+ "num-derive 0.4.2",
  "num-traits",
  "num_enum",
  "solana-program",
@@ -2172,7 +2197,7 @@ checksum = "309a3b7982b34879a196f263bdb53ef80f0341dfdf589084c0a15dc4c40418be"
 dependencies = [
  "arrayref",
  "bytemuck",
- "num-derive",
+ "num-derive 0.4.2",
  "num-traits",
  "num_enum",
  "solana-program",

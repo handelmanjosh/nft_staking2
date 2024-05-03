@@ -1,7 +1,9 @@
 use anchor_lang::prelude::*;
 use anchor_spl::{associated_token::AssociatedToken, token::{transfer, Mint, Token, TokenAccount, Transfer}};
+use mpl_token_metadata::accounts::Metadata;
 declare_id!("Cf46V8YdPDPvN3XUNzDEZDMsWvZivFm9A5fkrXojHe2K");
 
+const DECIMALS: u64 = 9;
 #[program]
 pub mod nft_staking2 {
     use super::*;
@@ -36,6 +38,11 @@ pub mod nft_staking2 {
             }
         }
         let user_info = ctx.accounts.user.to_account_info();
+        let metadata = Metadata::try_from_slice(&ctx.accounts.nft_metadata.data.borrow())?; 
+        if metadata.symbol != "CLB" && metadata.symbol != "UG" && metadata.symbol != "GOTM" && metadata.symbol != "GREATGOATS"
+        && metadata.symbol != "CNDY" {
+            return Err(CustomError::IncorrectCollection.into())
+        }
         transfer(
             CpiContext::new(
                 ctx.accounts.token_program.to_account_info(),
@@ -146,6 +153,8 @@ pub enum CustomError {
     Unauthorized,
     #[msg("Incorrect size")]
     IncorrectSize,
+    #[msg("Incorrect collection address")]
+    IncorrectCollection,
 }
 #[derive(Accounts)]
 pub struct CreateAssociatedTokenAccount<'info> {
@@ -253,6 +262,12 @@ pub struct Stake<'info> {
         token::authority = program_authority,
     )]
     pub stake_token_account: Account<'info, TokenAccount>,
+    #[account(
+        seeds = ["metadata".as_bytes(), mpl_token_metadata::ID.as_ref(), nft_account.mint.as_ref()],
+        bump,
+        seeds::program = mpl_token_metadata::ID,
+    )]
+    pub nft_metadata: UncheckedAccount<'info>,
     #[account(mut)]
     pub user: Signer<'info>,
     #[account(mut)]
